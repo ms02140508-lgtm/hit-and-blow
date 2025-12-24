@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <title>Hit & Blow</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
-<!-- PWA設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6c5ce7">
 
@@ -28,18 +26,14 @@ button { padding:12px; border-radius:12px; border:none; color:white; font-size:1
 .delete-btn { background:#d63031; }
 .sub-buttons { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
 .sub-buttons button { background:#0984e3; color:white; font-size:16px; }
-table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; }
+table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; word-break:normal; }
 th, td { border:1px solid #ccc; text-align:center; padding:6px; font-size:14px; }
-.cell { display:inline-flex; justify-content:center; align-items:center; width:28px; height:28px; border:1px solid #ccc; border-radius:6px; font-weight:bold; text-align:center; }
+.cell { display:inline-block; height:28px; line-height:28px; margin:0 2px; border:1px solid #ccc; border-radius:6px; font-weight:bold; white-space:nowrap; text-align:center; width:28px; }
 .answer-cell { background:#ff7675; color:white; }
 .blue { background:#74b9ff; }
-
-/* H/Bセル幅固定 */
+/* H/Bセル固定幅 */
 th:nth-child(2), th:nth-child(3),
 td:nth-child(2), td:nth-child(3) { width:30px; }
-
-/* 入力セルの数字を横並びに */
-td:first-child { display:flex; justify-content:center; gap:4px; white-space:nowrap; }
 
 /* ダークモード */
 body.dark { background:#121212; color:#f0f0f0; }
@@ -112,20 +106,21 @@ body.dark .mode-buttons .active { background:#00b894; color:white; }
 <audio id="seWrong" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
 
 <script>
-let answer=[],digit=4,gameOver=false,turnCount=0,hintUsed=false;
+let answer=[], digit=4, gameOver=false, turnCount=0, hintUsed=false;
 
 // --- 桁数ごとの記録 ---
-function loadStats(){ return { play:Number(localStorage.getItem(`hb_play_${digit}`)||0), win:Number(localStorage.getItem(`hb_win_${digit}`)||0) }; }
-function saveStats(play,win){ localStorage.setItem(`hb_play_${digit}`,play); localStorage.setItem(`hb_win_${digit}`,win); }
-let stats=loadStats();
-document.getElementById("playCount").textContent=stats.play;
-document.getElementById("winCount").textContent=stats.win;
-document.getElementById("turnCount").textContent=turnCount;
+function loadStats() { return { play: Number(localStorage.getItem(`hb_play_${digit}`) || 0), win: Number(localStorage.getItem(`hb_win_${digit}`) || 0) }; }
+function saveStats(play, win) { localStorage.setItem(`hb_play_${digit}`, play); localStorage.setItem(`hb_win_${digit}`, win); }
+
+let stats = loadStats();
+document.getElementById("playCount").textContent = stats.play;
+document.getElementById("winCount").textContent = stats.win;
+document.getElementById("turnCount").textContent = turnCount;
 
 startGame();
 
 // --- ダークモード ---
-function toggleDarkMode(){
+function toggleDarkMode() {
   const btn = document.getElementById("darkToggle");
   document.body.classList.toggle("dark");
   const isDark = document.body.classList.contains("dark");
@@ -133,95 +128,129 @@ function toggleDarkMode(){
   localStorage.setItem("darkMode", isDark ? "1" : "0");
 }
 const btn = document.getElementById("darkToggle");
-if(localStorage.getItem("darkMode")==="1"){ document.body.classList.add("dark"); btn.textContent = "☀️"; }
+if(localStorage.getItem("darkMode") === "1") { document.body.classList.add("dark"); btn.textContent = "☀️"; }
 
 // --- 桁数切替 ---
-function setDigit(n){
-  digit=n;
-  document.querySelectorAll(".mode-buttons button").forEach(b=>b.classList.remove("active"));
+function setDigit(n) {
+  digit = n;
+  document.querySelectorAll(".mode-buttons button").forEach(b => b.classList.remove("active"));
   document.getElementById("mode"+n).classList.add("active");
-  stats=loadStats();
-  document.getElementById("playCount").textContent=stats.play;
-  document.getElementById("winCount").textContent=stats.win;
+  stats = loadStats();
+  document.getElementById("playCount").textContent = stats.play;
+  document.getElementById("winCount").textContent = stats.win;
   startGame();
 }
 
 // --- ゲーム処理 ---
-function generateAnswer(){ const nums=[]; while(nums.length<digit){ const n=Math.floor(Math.random()*9)+1; if(!nums.includes(n)) nums.push(n); } return nums; }
-
-function startGame(){ 
-  answer=generateAnswer(); 
-  document.getElementById("history").innerHTML=""; 
-  document.getElementById("guess").value=""; 
-  turnCount=0; hintUsed=false; gameOver=false; 
-  document.getElementById("turnCount").textContent=turnCount; 
-  console.log("答え:",answer.join(""));
+function generateAnswer() {
+  const nums = [];
+  while(nums.length < digit) {
+    const n = Math.floor(Math.random() * 9) + 1;
+    if(!nums.includes(n)) nums.push(n);
+  }
+  return nums;
 }
 
-function resetGame(){ 
-  if(!confirm("新しいゲームを開始しますか？")) return; 
-  stats.play++; saveStats(stats.play,stats.win); 
-  document.getElementById("playCount").textContent=stats.play; 
-  startGame(); 
+function startGame() {
+  answer = generateAnswer();
+  document.getElementById("history").innerHTML = "";
+  document.getElementById("guess").value = "";
+  turnCount = 0;
+  hintUsed = false;
+  gameOver = false;
+  document.getElementById("turnCount").textContent = turnCount;
+  console.log("答え:", answer.join(""));
 }
 
-function playSE(id){ const se=document.getElementById(id); se.currentTime=0; se.play(); }
-
-function press(n){ 
-  if(gameOver) return; 
-  const input=document.getElementById("guess"); 
-  if(input.value.length>=digit) return; 
-  if(input.value.includes(n)) return; 
-  input.value+=n; 
-  if(navigator.vibrate) navigator.vibrate(20); 
-  playSE("seTap"); 
+function resetGame() {
+  if(!confirm("新しいゲームを開始しますか？")) return;
+  stats.play++;
+  saveStats(stats.play, stats.win);
+  document.getElementById("playCount").textContent = stats.play;
+  startGame();
 }
 
-function del(){ 
-  if(gameOver) return; 
-  const input=document.getElementById("guess"); 
-  input.value=input.value.slice(0,-1); 
-  if(navigator.vibrate) navigator.vibrate(15); 
+function playSE(id) {
+  const se = document.getElementById(id);
+  se.currentTime = 0;
+  se.play();
 }
 
-function check(){
+function press(n) {
   if(gameOver) return;
-  const input=document.getElementById("guess").value;
-  if(input.length!==digit){ alert(digit+"桁入力してください（重複不可）"); playSE("seWrong"); return; }
-  const guess=input.split("").map(Number); 
-  let hit=0,ball=0;
-  guess.forEach((n,i)=>{ if(n===answer[i]) hit++; else if(answer.includes(n)) ball++; });
-  const cells=guess.map(n=>`<span class="cell">${n}</span>`).join("");
-  document.getElementById("history").innerHTML+=`<tr><td>${cells}</td><td>${hit}</td><td>${ball}</td></tr>`;
-  document.getElementById("guess").value="";
-  turnCount++; 
-  document.getElementById("turnCount").textContent=turnCount;
+  const input = document.getElementById("guess");
+  if(input.value.length >= digit) return;
+  if(input.value.includes(n)) return;
+  input.value += n;
+  if(navigator.vibrate) navigator.vibrate(20);
+  playSE("seTap");
 }
 
-function showHint(){ 
-  if(gameOver) return; 
-  if(!confirm("ヒントを表示しますか？")) return; 
-  hintUsed=true; 
-  const cells=document.querySelectorAll(".cell"); 
-  cells.forEach(cell=>cell.classList.remove("blue")); 
-  cells.forEach(cell=>{ const num=Number(cell.textContent); if(answer.includes(num)) cell.classList.add("blue"); }); 
+function del() {
+  if(gameOver) return;
+  const input = document.getElementById("guess");
+  input.value = input.value.slice(0,-1);
+  if(navigator.vibrate) navigator.vibrate(15);
 }
 
-function giveUp(){ 
-  if(gameOver) return; 
-  if(!confirm("本当にギブアップしますか？")) return; 
-  const history=document.getElementById("history"); 
-  const answerCells=answer.map(n=>`<span class="cell answer-cell">${n}</span>`).join(''); 
-  history.innerHTML+=`<tr><td>${answerCells}</td><td>-</td><td>-</td></tr>`; 
-  alert("答えを表示しました。履歴を見て振り返ってください。\nニューゲームは右上のボタンから開始できます。"); 
-  gameOver=true; 
+function check() {
+  if(gameOver) return;
+  const input = document.getElementById("guess").value;
+  if(input.length !== digit) {
+    alert(digit + "桁入力してください（重複不可）");
+    playSE("seWrong");
+    return;
+  }
+  const guess = input.split("").map(Number);
+  let hit = 0, ball = 0;
+  guess.forEach((n,i) => { if(n === answer[i]) hit++; else if(answer.includes(n)) ball++; });
+  const cells = guess.map(n => `<span class="cell">${n}</span>`).join("");
+  document.getElementById("history").innerHTML += `<tr><td>${cells}</td><td>${hit}</td><td>${ball}</td></tr>`;
+  document.getElementById("guess").value = "";
+  turnCount++;
+  document.getElementById("turnCount").textContent = turnCount;
+
+  if(hit === digit) {
+    playSE("seCorrect");
+    if(navigator.vibrate) navigator.vibrate([60,40,60]);
+    if(!hintUsed) {
+      stats.win++;
+      saveStats(stats.play, stats.win);
+      document.getElementById("winCount").textContent = stats.win;
+      alert("🎉 正解！おめでとう！");
+    } else {
+      alert("ヒント使用済みなので成功回数にはカウントされません。正解！");
+    }
+    gameOver = true;
+  } else {
+    playSE("seWrong");
+  }
 }
 
-// --- Service Worker 登録（オフライン対応） ---
+function showHint() {
+  if(gameOver) return;
+  if(!confirm("ヒントを表示しますか？")) return;
+  hintUsed = true;
+  const cells = document.querySelectorAll(".cell");
+  cells.forEach(c => c.classList.remove("blue"));
+  cells.forEach(c => { const num = Number(c.textContent); if(answer.includes(num)) c.classList.add("blue"); });
+}
+
+function giveUp() {
+  if(gameOver) return;
+  if(!confirm("本当にギブアップしますか？")) return;
+  const history = document.getElementById("history");
+  const answerCells = answer.map(n => `<span class="cell answer-cell">${n}</span>`).join('');
+  history.innerHTML += `<tr><td>${answerCells}</td><td>-</td><td>-</td></tr>`;
+  alert("答えを表示しました。履歴を見て振り返ってください。\nニューゲームは右上のボタンから開始できます。");
+  gameOver = true;
+}
+
+// --- Service Worker 登録 ---
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js')
-  .then(reg=>console.log('Service Worker 登録成功',reg))
-  .catch(err=>console.log('Service Worker 登録失敗',err));
+  .then(reg => console.log('Service Worker 登録成功', reg))
+  .catch(err => console.log('Service Worker 登録失敗', err));
 }
 </script>
 </body>
