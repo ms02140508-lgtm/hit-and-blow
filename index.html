@@ -28,26 +28,15 @@ button { padding:12px; border-radius:12px; border:none; color:white; font-size:1
 .delete-btn { background:#d63031; }
 .sub-buttons { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
 .sub-buttons button { background:#0984e3; color:white; font-size:16px; }
-
-/* テーブル */
 table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; word-break:normal; }
-th,td { border:1px solid #ccc; text-align:center; padding:6px; font-size:14px; }
-
-/* セル */
-.cell {
-  display:inline-block;
-  width:30px;           /* 少し広め */
-  height:30px;
-  line-height:30px;
-  margin:0 2px;         /* 左右のマージンだけ */
-  border:1px solid #ccc;
-  border-radius:6px;
-  font-weight:bold;
-  white-space:nowrap;   /* 改行させない */
-}
-
-.blue { background:#74b9ff; }
+th, td { border:1px solid #ccc; text-align:center; padding:6px; font-size:14px; }
+.cell { display:inline-block; height:28px; line-height:28px; margin:0 2px; border:1px solid #ccc; border-radius:6px; font-weight:bold; white-space:nowrap; text-align:center; }
 .answer-cell { background:#ff7675; color:white; }
+.blue { background:#74b9ff; }
+
+/* H/Bセル固定幅 */
+th:nth-child(2), th:nth-child(3),
+td:nth-child(2), td:nth-child(3) { width:30px; }
 
 /* ダークモード */
 body.dark { background:#121212; color:#f0f0f0; }
@@ -154,27 +143,91 @@ function setDigit(n){
   startGame();
 }
 
+// --- セル幅を桁数に合わせる ---
+function updateCellWidth() {
+  const cells = document.querySelectorAll(".cell");
+  const width = `calc((100% - ${(digit-1)*4}px)/${digit})`;
+  cells.forEach(c => c.style.width = width);
+}
+
 // --- ゲーム処理 ---
 function generateAnswer(){ const nums=[]; while(nums.length<digit){ const n=Math.floor(Math.random()*9)+1; if(!nums.includes(n)) nums.push(n); } return nums; }
-function startGame(){ answer=generateAnswer(); document.getElementById("history").innerHTML=""; document.getElementById("guess").value=""; turnCount=0; hintUsed=false; gameOver=false; document.getElementById("turnCount").textContent=turnCount; console.log("答え:",answer.join("")); }
-function resetGame(){ if(!confirm("新しいゲームを開始しますか？")) return; stats.play++; saveStats(stats.play,stats.win); document.getElementById("playCount").textContent=stats.play; startGame(); }
+
+function startGame(){ 
+  answer=generateAnswer(); 
+  document.getElementById("history").innerHTML=""; 
+  document.getElementById("guess").value=""; 
+  turnCount=0; hintUsed=false; gameOver=false; 
+  document.getElementById("turnCount").textContent=turnCount; 
+  console.log("答え:",answer.join(""));
+}
+
+function resetGame(){ 
+  if(!confirm("新しいゲームを開始しますか？")) return; 
+  stats.play++; saveStats(stats.play,stats.win); 
+  document.getElementById("playCount").textContent=stats.play; 
+  startGame(); 
+}
+
 function playSE(id){ const se=document.getElementById(id); se.currentTime=0; se.play(); }
-function press(n){ if(gameOver) return; const input=document.getElementById("guess"); if(input.value.length>=digit) return; if(input.value.includes(n)) return; input.value+=n; if(navigator.vibrate) navigator.vibrate(20); playSE("seTap"); }
-function del(){ if(gameOver) return; const input=document.getElementById("guess"); input.value=input.value.slice(0,-1); if(navigator.vibrate) navigator.vibrate(15); }
+
+function press(n){ 
+  if(gameOver) return; 
+  const input=document.getElementById("guess"); 
+  if(input.value.length>=digit) return; 
+  if(input.value.includes(n)) return; 
+  input.value+=n; 
+  if(navigator.vibrate) navigator.vibrate(20); 
+  playSE("seTap"); 
+}
+
+function del(){ 
+  if(gameOver) return; 
+  const input=document.getElementById("guess"); 
+  input.value=input.value.slice(0,-1); 
+  if(navigator.vibrate) navigator.vibrate(15); 
+}
+
 function check(){
   if(gameOver) return;
   const input=document.getElementById("guess").value;
   if(input.length!==digit){ alert(digit+"桁入力してください（重複不可）"); playSE("seWrong"); return; }
-  const guess=input.split("").map(Number); let hit=0,ball=0;
+  const guess=input.split("").map(Number); 
+  let hit=0,ball=0;
   guess.forEach((n,i)=>{ if(n===answer[i]) hit++; else if(answer.includes(n)) ball++; });
   const cells=guess.map(n=>`<span class="cell">${n}</span>`).join("");
   document.getElementById("history").innerHTML+=`<tr><td>${cells}</td><td>${hit}</td><td>${ball}</td></tr>`;
   document.getElementById("guess").value="";
-  turnCount++; document.getElementById("turnCount").textContent=turnCount;
-  if(hit===digit){ playSE("seCorrect"); if(navigator.vibrate) navigator.vibrate([60,40,60]); if(!hintUsed){ stats.win++; saveStats(stats.play,stats.win); document.getElementById("winCount").textContent=stats.win; alert("🎉 正解！おめでとう！"); } else alert("ヒント使用済みなので成功回数にはカウントされません。正解！"); gameOver=true; } else playSE("seWrong");
+  turnCount++; 
+  document.getElementById("turnCount").textContent=turnCount;
+  updateCellWidth(); // 幅を更新
+  if(hit===digit){ 
+    playSE("seCorrect"); 
+    if(navigator.vibrate) navigator.vibrate([60,40,60]); 
+    if(!hintUsed){ stats.win++; saveStats(stats.play,stats.win); document.getElementById("winCount").textContent=stats.win; alert("🎉 正解！おめでとう！"); } 
+    else alert("ヒント使用済みなので成功回数にはカウントされません。正解！"); 
+    gameOver=true; 
+  } else playSE("seWrong");
 }
-function showHint(){ if(gameOver) return; if(!confirm("ヒントを表示しますか？")) return; hintUsed=true; const cells=document.querySelectorAll(".cell"); cells.forEach(cell=>cell.classList.remove("blue")); cells.forEach(cell=>{ const num=Number(cell.textContent); if(answer.includes(num)) cell.classList.add("blue"); }); }
-function giveUp(){ if(gameOver) return; if(!confirm("本当にギブアップしますか？")) return; const history=document.getElementById("history"); const answerCells=answer.map(n=>`<span class="cell answer-cell">${n}</span>`).join(''); history.innerHTML+=`<tr><td>${answerCells}</td><td>-</td><td>-</td></tr>`; alert("答えを表示しました。履歴を見て振り返ってください。\nニューゲームは右上のボタンから開始できます。"); gameOver=true; }
+
+function showHint(){ 
+  if(gameOver) return; 
+  if(!confirm("ヒントを表示しますか？")) return; 
+  hintUsed=true; 
+  const cells=document.querySelectorAll(".cell"); 
+  cells.forEach(cell=>cell.classList.remove("blue")); 
+  cells.forEach(cell=>{ const num=Number(cell.textContent); if(answer.includes(num)) cell.classList.add("blue"); }); 
+}
+
+function giveUp(){ 
+  if(gameOver) return; 
+  if(!confirm("本当にギブアップしますか？")) return; 
+  const history=document.getElementById("history"); 
+  const answerCells=answer.map(n=>`<span class="cell answer-cell">${n}</span>`).join(''); 
+  history.innerHTML+=`<tr><td>${answerCells}</td><td>-</td><td>-</td></tr>`; 
+  alert("答えを表示しました。履歴を見て振り返ってください。\nニューゲームは右上のボタンから開始できます。"); 
+  gameOver=true; 
+}
 
 // --- Service Worker 登録（オフライン対応） ---
 if('serviceWorker' in navigator){
