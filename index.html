@@ -28,15 +28,18 @@ button { padding:12px; border-radius:12px; border:none; color:white; font-size:1
 .delete-btn { background:#d63031; }
 .sub-buttons { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
 .sub-buttons button { background:#0984e3; color:white; font-size:16px; }
-table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; word-break:normal; }
+table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; }
 th, td { border:1px solid #ccc; text-align:center; padding:6px; font-size:14px; }
-.cell { display:inline-block; height:28px; line-height:28px; margin:0 2px; border:1px solid #ccc; border-radius:6px; font-weight:bold; white-space:nowrap; text-align:center; }
+.cell { display:inline-flex; justify-content:center; align-items:center; width:28px; height:28px; border:1px solid #ccc; border-radius:6px; font-weight:bold; text-align:center; }
 .answer-cell { background:#ff7675; color:white; }
 .blue { background:#74b9ff; }
 
-/* H/Bセル固定幅 */
+/* H/Bセル幅固定 */
 th:nth-child(2), th:nth-child(3),
 td:nth-child(2), td:nth-child(3) { width:30px; }
+
+/* 入力セルの数字を横並びに */
+td:first-child { display:flex; justify-content:center; gap:4px; white-space:nowrap; }
 
 /* ダークモード */
 body.dark { background:#121212; color:#f0f0f0; }
@@ -143,13 +146,6 @@ function setDigit(n){
   startGame();
 }
 
-// --- セル幅を桁数に合わせる ---
-function updateCellWidth() {
-  const cells = document.querySelectorAll(".cell");
-  const width = `calc((100% - ${(digit-1)*4}px)/${digit})`;
-  cells.forEach(c => c.style.width = width);
-}
-
 // --- ゲーム処理 ---
 function generateAnswer(){ const nums=[]; while(nums.length<digit){ const n=Math.floor(Math.random()*9)+1; if(!nums.includes(n)) nums.push(n); } return nums; }
 
@@ -200,14 +196,6 @@ function check(){
   document.getElementById("guess").value="";
   turnCount++; 
   document.getElementById("turnCount").textContent=turnCount;
-  updateCellWidth(); // 幅を更新
-  if(hit===digit){ 
-    playSE("seCorrect"); 
-    if(navigator.vibrate) navigator.vibrate([60,40,60]); 
-    if(!hintUsed){ stats.win++; saveStats(stats.play,stats.win); document.getElementById("winCount").textContent=stats.win; alert("🎉 正解！おめでとう！"); } 
-    else alert("ヒント使用済みなので成功回数にはカウントされません。正解！"); 
-    gameOver=true; 
-  } else playSE("seWrong");
 }
 
 function showHint(){ 
