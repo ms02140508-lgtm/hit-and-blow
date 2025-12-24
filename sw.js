@@ -1,50 +1,41 @@
 const CACHE_NAME = 'hit-and-blow-cache-v1';
-const FILES_TO_CACHE = [
-  './',                 // index.html
+const urlsToCache = [
+  './',
   './index.html',
   './manifest.json',
   './sw.js',
-  // CSSやJS、音声ファイルも追加
-  './style.css',        // CSSを分けている場合
-  './hit_and_blow.js',  // ゲーム本体JSを外部にしている場合
-  'https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3',
-  'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3',
-  'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'
+  './seTap.mp3',      // 必要に応じて自分で置き換え
+  './seCorrect.mp3',
+  './seWrong.mp3'
 ];
 
-self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Install');
+// インストール時にキャッシュ
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Caching files');
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activate');
+// アクティベート時
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((keyList) =>
+    caches.keys().then(cacheNames =>
       Promise.all(
-        keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[ServiceWorker] Removing old cache', key);
-            return caches.delete(key);
-          }
-        })
+        cacheNames.filter(name => name !== CACHE_NAME)
+                  .map(name => caches.delete(name))
       )
     )
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
+// フェッチ時にキャッシュ優先
+self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
   );
 });
+
 
